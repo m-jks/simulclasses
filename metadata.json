@@ -1,0 +1,6 @@
+{
+  "name": "SimulClasses",
+  "description": "Application d'aide à la répartition des élèves et création de classes pour les écoles primaires avec critères personnalisables, gestion des doubles niveaux et comparaison de propositions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
