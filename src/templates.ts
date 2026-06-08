@@ -37,7 +37,7 @@ export const SCHOOL_TEMPLATES: SchoolTemplate[] = [
   },
   {
     name: "École standard (5 classes)",
-    description: "Structure équilibrée avec effectifs moyennes classes. Idéal pour comparer les options de double niveau.",
+    description: "Structure équilibrée avec effectifs moyens. Adaptée pour comparer les options de double niveau.",
     maxClasses: 5,
     levels: {
       PS: { count: 15, enabled: true },

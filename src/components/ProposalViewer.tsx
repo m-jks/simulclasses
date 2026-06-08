@@ -66,17 +66,19 @@ export default function ProposalViewer({
   // Check if any level in class has customized ceiling limit
   const getClassSpecificCeilings = (cls: Class分配, selectedProposalConfig: AllocationProposal['config']) => {
     const limits: Array<{ level: LevelId; limit: number }> = [];
-    Object.keys(cls.levels).forEach(lId => {
-      const configItem = selectedProposalConfig.levels.find(lvlConf => lvlConf.id === lId);
-      if (configItem && configItem.maxClassSize) {
-        limits.push({ level: lId as LevelId, limit: configItem.maxClassSize });
+    Object.entries(cls.levels).forEach(([lId, qty]) => {
+      if ((qty || 0) > 0) {
+        const configItem = selectedProposalConfig.levels.find(lvlConf => lvlConf.id === lId);
+        if (configItem && configItem.maxClassSize) {
+          limits.push({ level: lId as LevelId, limit: configItem.maxClassSize });
+        }
       }
     });
     return limits;
   };
 
   const getHomogeneityLabel = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal, répartition parfaite";
+    if (stdDev < 1.0) return "Très équilibrée, répartition optimale";
     if (stdDev <= 1.5) return "Très Homogène (1-2 él. d'écart)";
     if (stdDev <= 2.5) return "Équilibré (3-4 él. d'écart)";
     return "Hétérogène (écarts marqués)";
@@ -119,7 +121,7 @@ export default function ProposalViewer({
   };
 
   const getCycleStdDevStatus = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal";
+    if (stdDev < 1.0) return "Très équilibrée";
     if (stdDev <= 1.5) return "Très Homogène";
     if (stdDev <= 2.5) return "Équilibré";
     return "Hétérogène";
@@ -179,13 +181,13 @@ export default function ProposalViewer({
             </span>
             <span className="text-xl font-black text-indigo-700 block mt-1">{selectedProposal.stats.standardDeviation}</span>
             <span className="text-[9px] text-slate-400 block -mt-0.5">
-              {selectedProposal.stats.standardDeviation < 1.0 ? '⭐️ Idéal' :
+              {selectedProposal.stats.standardDeviation < 1.0 ? '⭐️ Très équilibré' :
                selectedProposal.stats.standardDeviation <= 1.5 ? '⭐️ Très Homogène' :
                selectedProposal.stats.standardDeviation <= 2.5 ? '⚖️ Équilibré' : '⚠️ Hétérogène'}
             </span>
             
             {/* Elegant Tooltip overlay */}
-            <div className="absolute z-30 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs opacity-0 pointer-events-none group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 scale-95 origin-bottom group-hover:scale-100">
+            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 origin-bottom group-hover:scale-100 pointer-events-none">
               <h5 className="font-bold text-indigo-400 mb-1 flex items-center gap-1.5 text-xs">
                 <Calculator className="w-3.5 h-3.5" />
                 Qu'est-ce que l'écart-type homogénéité ?
@@ -198,7 +200,7 @@ export default function ProposalViewer({
                 <li className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                   <span className="text-emerald-300 font-bold">&lt; 1,0 :</span>
-                  <span>Idéal, répartition parfaite</span>
+                  <span>Très équilibrée, répartition optimale</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0"></span>
@@ -217,12 +219,12 @@ export default function ProposalViewer({
                 </li>
               </ul>
               {/* Tooltip caret arrow */}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900"></div>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
             </div>
           </div>
 
           <div className="bg-brand-bg/50 p-3.5 rounded-xl border border-brand-border-light text-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Doubles Niveaux</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Cours doubles / multiples</span>
             <span className="text-xl font-black text-slate-800">
               {selectedProposal.stats.doubleLevelCount}{' '}
               <span className="text-xs text-slate-400 font-normal">
@@ -403,11 +405,11 @@ export default function ProposalViewer({
                 </li>
                 {selectedProposal.stats.doubleLevelCount > 0 ? (
                   <li>
-                    Il y a {selectedProposal.stats.doubleLevelCount} classe(s) à double niveau nécessaire(s) pour absorber vos effectifs. Les autres classes conservent un niveau unique.
+                    Il y a {selectedProposal.stats.doubleLevelCount} classe(s) à cours doubles ou multiples nécessaire(s) pour répartir vos effectifs. Les autres classes conservent un niveau unique.
                   </li>
                 ) : (
                   <li>
-                    Félicitations ! Aucune classe à double niveau n'a été créée. Toutes vos classes conservent un niveau pur unique (100% à niveau simple).
+                    Aucune classe à cours doubles ou multiples n'est nécessaire. Toutes vos classes conservent un niveau unique (100% à niveau simple).
                   </li>
                 )}
                 {selectedProposal.classes.map((c, sIdx) => {
@@ -454,7 +456,7 @@ export default function ProposalViewer({
                         ) : classes.length === 1 ? (
                           <>
                             <span>Classe de {classes[0].totalStudents} élèves.</span>
-                            <span className="font-bold text-emerald-600">Enseignant unique (équilibre idéal)</span>
+                            <span className="font-bold text-slate-600">Enseignant unique</span>
                           </>
                         ) : (
                           <>

@@ -76,7 +76,14 @@ export default function App() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed.filter(p => p && typeof p === 'object' && p.id && Array.isArray(p.classes) && p.stats);
+          const filtered = parsed.filter(p => p && typeof p === 'object' && p.id && Array.isArray(p.classes) && p.stats);
+          return filtered.map(p => ({
+            ...p,
+            classes: p.classes.map((c, index) => ({
+              ...c,
+              id: c.id || `class-${p.id}-${index}`
+            }))
+          }));
         }
       }
     } catch (e) {
@@ -170,7 +177,11 @@ export default function App() {
     const updatedProp = {
       ...prop,
       name: customName,
-      isSaved: true
+      isSaved: true,
+      classes: prop.classes.map((c, idx) => ({
+        ...c,
+        id: c.id || `class-${prop.id}-${idx}`
+      }))
     };
     const newList = [...savedProposals, updatedProp];
     setSavedProposals(newList);
@@ -184,10 +195,8 @@ export default function App() {
   };
 
   const handleClearAllSaved = () => {
-    if (window.confirm("Êtes-vous certain de vouloir supprimer toutes vos sauvegardes de scénarios ?")) {
-      setSavedProposals([]);
-      sessionStorage.removeItem('class_planner_saved_proposals');
-    }
+    setSavedProposals([]);
+    sessionStorage.removeItem('class_planner_saved_proposals');
   };
 
   const handleRenameClassInSavedProposal = (proposalId: string, classId: string, newCustomName: string) => {
@@ -195,11 +204,12 @@ export default function App() {
       if (p.id === proposalId) {
         return {
           ...p,
-          classes: p.classes.map(c => {
-            if (c.id === classId) {
+          classes: p.classes.map((c, idx) => {
+            const currentId = c.id || `class-${p.id}-${idx}`;
+            if (currentId === classId) {
               return { ...c, customName: newCustomName };
             }
-            return c;
+            return { ...c, id: currentId };
           })
         };
       }

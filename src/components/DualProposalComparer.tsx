@@ -99,14 +99,14 @@ export default function DualProposalComparer({
   const doubleLevelsCountB = propB.stats.doubleLevelCount;
 
   const getHomogeneityLabel = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal";
+    if (stdDev < 1.0) return "Très équilibrée";
     if (stdDev <= 1.5) return "Très Homogène";
     if (stdDev <= 2.5) return "Équilibré";
     return "Hétérogène";
   };
 
   const getHomogeneityFullText = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal, répartition parfaite";
+    if (stdDev < 1.0) return "Très équilibrée, répartition optimale";
     if (stdDev <= 1.5) return "Très Homogène (1-2 él. d'écart)";
     if (stdDev <= 2.5) return "Équilibré (3-4 él. d'écart)";
     return "Hétérogène (écarts marqués)";
@@ -599,8 +599,8 @@ export default function DualProposalComparer({
                   {/* Multi-level counts */}
                   <tr className="hover:bg-slate-50/30 transition">
                     <td className="py-2.5 px-4 font-bold text-slate-900 border-r border-slate-100">
-                      Classes doubles niveaux
-                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">Idéalement à minimiser pour faciliter les cours</span>
+                      Classes à cours doubles ou multiples
+                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">À minimiser pour faciliter la gestion de la classe</span>
                     </td>
                     <td className="py-2.5 px-4 border-r border-slate-100">
                       <span className="font-extrabold text-slate-800 text-xs">{doubleLevelsCountA} classes</span>
@@ -664,7 +664,7 @@ export default function DualProposalComparer({
                   <tr className="hover:bg-slate-50/30 transition">
                     <td className="py-2.5 px-4 font-bold text-slate-900 border-r border-slate-100">
                       Écart-type Cycle 2 <span className="text-[10px] text-slate-400 font-normal">(CP/CE1/CE2)</span>
-                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">Homogénéité entre collègues de l'élémentaire initial</span>
+                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">Homogénéité entre collègues du Cycle 2</span>
                     </td>
                     <td className="py-2.5 px-4 border-r border-slate-100">
                       {cycleDetailsA.c2.classes.length > 1 ? (
@@ -703,7 +703,7 @@ export default function DualProposalComparer({
                   <tr className="hover:bg-slate-50/30 transition">
                     <td className="py-2.5 px-4 font-bold text-slate-900 border-r border-slate-100">
                       Écart-type Cycle 3 <span className="text-[10px] text-slate-400 font-normal">(CM1/CM2)</span>
-                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">Homogénéité entre collègues de l'élémentaire supérieur</span>
+                      <span className="block text-[10px] text-slate-400 font-semibold leading-normal">Homogénéité entre collègues du Cycle 3</span>
                     </td>
                     <td className="py-2.5 px-4 border-r border-slate-100">
                       {cycleDetailsA.c3.classes.length > 1 ? (
@@ -780,12 +780,12 @@ export default function DualProposalComparer({
                 <div className="flex items-start gap-2 text-slate-600">
                   <div className="w-1.5 h-1.5 bg-slate-400 rounded-full shrink-0 mt-1.5"></div>
                   <span>
-                    <strong>Doubles Niveaux :</strong> {doubleLevelsCountA === doubleLevelsCountB ? (
-                      `Les deux options nécessitent le même nombre de classes doubles (${doubleLevelsCountA}).`
+                    <strong>Cours doubles ou multiples :</strong> {doubleLevelsCountA === doubleLevelsCountB ? (
+                      `Les deux options nécessitent le même nombre de classes à cours doubles ou multiples (${doubleLevelsCountA}).`
                     ) : doubleLevelsCountA < doubleLevelsCountB ? (
-                      `L'option [A] comporte moins de doubles niveaux (${doubleLevelsCountA} contre ${doubleLevelsCountB} pour B). Elle est plus épurée.`
+                      `L'option [A] comporte moins de classes à cours doubles ou multiples (${doubleLevelsCountA} contre {doubleLevelsCountB} pour B).`
                     ) : (
-                      `L'option [B] comporte moins de doubles niveaux (${doubleLevelsCountB} contre ${doubleLevelsCountA} pour A). Elle est plus épurée.`
+                      `L'option [B] comporte moins de classes à cours doubles ou multiples (${doubleLevelsCountB} contre {doubleLevelsCountA} pour A).`
                     )}
                   </span>
                 </div>
@@ -793,8 +793,8 @@ export default function DualProposalComparer({
                 <div className="flex items-start gap-2 text-slate-600">
                   <div className="w-1.5 h-1.5 bg-slate-400 rounded-full shrink-0 mt-1.5"></div>
                   <span>
-                    <strong>Couplages Doubles :</strong> {JSON.stringify(dblA.sort()) === JSON.stringify(dblB.sort()) ? (
-                      "Les deux options forment exactement les mêmes couplages pédagogiques de doubles niveaux."
+                    <strong>Associations de niveaux :</strong> {JSON.stringify(dblA.sort()) === JSON.stringify(dblB.sort()) ? (
+                      "Les deux options forment exactement les mêmes regroupements pédagogiques de cours doubles ou multiples."
                     ) : (
                       "Les choix d'associations diffèrent. Repérez l'option avec les regroupements de niveaux les plus cohérents pour vos élèves."
                     )}

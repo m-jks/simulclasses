@@ -40,6 +40,14 @@ export default function ComparisonTable({
   const [selectedPropId, setSelectedPropId] = useState<string>('');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [editingNameValue, setEditingNameValue] = useState<string>('');
+  const [confirmClearAll, setConfirmClearAll] = useState<boolean>(false);
+
+  // Auto-reset confirmation if list becomes empty or changes
+  useEffect(() => {
+    if (savedProposals.length === 0) {
+      setConfirmClearAll(false);
+    }
+  }, [savedProposals.length]);
 
   // Auto-select first proposal when none is chosen or the list updates
   useEffect(() => {
@@ -326,7 +334,7 @@ export default function ComparisonTable({
       <span class="stats-value">${activeProposal.stats.minClassSize} à ${activeProposal.stats.maxClassSize} él.</span>
     </div>
     <div class="stats-card">
-      <span class="stats-label">Double Niveaux</span>
+      <span class="stats-label">Cours doubles / multiples</span>
       <span class="stats-value">${activeProposal.stats.doubleLevelCount} classes</span>
     </div>
   </div>
@@ -513,7 +521,7 @@ export default function ComparisonTable({
         <td class="stat-val-cell">${activeProposal.stats.standardDeviation}</td>
       </tr>
       <tr>
-        <td class="stat-label-cell">Nb Classes Multi-Niveaux</td>
+        <td class="stat-label-cell">Classes à cours doubles / multiples</td>
         <td class="stat-val-cell">${activeProposal.stats.doubleLevelCount}</td>
       </tr>
     </tbody>
@@ -627,14 +635,14 @@ export default function ComparisonTable({
   };
 
   const getCycleStdDevStatus = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal";
+    if (stdDev < 1.0) return "Très équilibrée";
     if (stdDev <= 1.5) return "Très Homogène";
     if (stdDev <= 2.5) return "Équilibré";
     return "Hétérogène";
   };
 
   const getHomogeneityLabel = (stdDev: number) => {
-    if (stdDev < 1.0) return "Idéal, répartition parfaite";
+    if (stdDev < 1.0) return "Très équilibrée, répartition optimale";
     if (stdDev <= 1.5) return "Très Homogène (1-2 él. d'écart)";
     if (stdDev <= 2.5) return "Équilibré (3-4 él. d'écart)";
     return "Hétérogène (écarts marqués)";
@@ -642,10 +650,12 @@ export default function ComparisonTable({
 
   const getClassSpecificCeilings = (cls: typeof activeProposal.classes[0], proposalConfig: typeof activeProposal.config) => {
     const limits: Array<{ level: LevelId; limit: number }> = [];
-    Object.keys(cls.levels).forEach(lId => {
-      const configItem = proposalConfig.levels.find(lvlConf => lvlConf.id === lId);
-      if (configItem && configItem.maxClassSize) {
-        limits.push({ level: lId as LevelId, limit: configItem.maxClassSize });
+    Object.entries(cls.levels).forEach(([lId, qty]) => {
+      if ((qty || 0) > 0) {
+        const configItem = proposalConfig.levels.find(lvlConf => lvlConf.id === lId);
+        if (configItem && configItem.maxClassSize) {
+          limits.push({ level: lId as LevelId, limit: configItem.maxClassSize });
+        }
       }
     });
     return limits;
@@ -665,13 +675,41 @@ export default function ComparisonTable({
           </div>
         </div>
 
-        <button
-          onClick={onClearAll}
-          className="h-10 px-4 bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-200 text-rose-600 transition rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 self-end sm:self-auto"
-        >
-          <Trash2 className="w-4 h-4" />
-          Tout effacer ({savedProposals.length})
-        </button>
+        {confirmClearAll ? (
+          <div className="flex items-center gap-2 self-end sm:self-auto bg-rose-50/50 border border-rose-100 p-1.5 rounded-xl">
+            <span className="text-xs text-rose-700 font-bold px-1.5">Tout supprimer ?</span>
+            <button
+              onClick={() => {
+                onClearAll();
+                setConfirmClearAll(false);
+              }}
+              className="h-8 px-2.5 bg-rose-600 hover:bg-rose-700 text-white transition rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1 shadow-3xs"
+            >
+              <Check className="w-3.5 h-3.5" />
+              Oui, tout effacer
+            </button>
+            <button
+              onClick={() => setConfirmClearAll(false)}
+              className="h-8 px-2 bg-slate-200 hover:bg-slate-300 text-slate-700 transition rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1"
+            >
+              <X className="w-3.5 h-3.5" />
+              Annuler
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmClearAll(true)}
+            disabled={savedProposals.length === 0}
+            className={`h-10 px-4 transition rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 self-end sm:self-auto ${
+              savedProposals.length === 0
+                ? 'opacity-50 cursor-not-allowed bg-slate-50 border border-slate-200 text-slate-400'
+                : 'bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-200 text-rose-600'
+            }`}
+          >
+            <Trash2 className="w-4 h-4" />
+            Tout effacer ({savedProposals.length})
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -687,7 +725,7 @@ export default function ComparisonTable({
               return (
                 <div
                   key={prop.id}
-                  className={`group relative rounded-xl border p-3.5 flex items-center justify-between transition-all cursor-pointer ${
+                  className={`rounded-xl border p-3 flex items-center justify-between gap-3 transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-indigo-50/50 border-indigo-200 ring-1 ring-indigo-200 shadow-3xs'
                       : 'bg-brand-bg/30 border-brand-border-medium hover:bg-brand-accent/40'
@@ -697,7 +735,7 @@ export default function ComparisonTable({
                     setEditingClassId(null);
                   }}
                 >
-                  <div className="flex-1 min-w-0 pr-6">
+                  <div className="flex-1 min-w-0">
                     <span className={`block font-bold text-xs truncate ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
                       {prop.name}
                     </span>
@@ -706,21 +744,19 @@ export default function ComparisonTable({
                     </span>
                   </div>
 
-                  <div className="flex items-center shrink-0">
-                    <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? 'text-indigo-500 translate-x-0.5' : 'text-slate-300'}`} />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteProposal(prop.id);
+                      }}
+                      className="p-1.5 rounded-lg border border-slate-200 hover:border-rose-200 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition shadow-3xs"
+                      title="Supprimer cette répartition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <ChevronRight className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSelected ? 'text-indigo-500' : 'text-slate-300'}`} />
                   </div>
-
-                  {/* Individual Delete Action on hover or select */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteProposal(prop.id);
-                    }}
-                    className="absolute right-9 opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition"
-                    title="Supprimer cette répartition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               );
             })}
@@ -732,11 +768,7 @@ export default function ComparisonTable({
           {activeProposal ? (
             <div className="space-y-8">
               {/* Detailed panel actions row with GDoc, GSheet and print formats (Hidden during print) */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-brand-border-light pb-5 print:hidden">
-                <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full font-bold">
-                  Scénario Actif sélectionné
-                </span>
-
+              <div className="flex flex-wrap items-center justify-end gap-4 border-b border-brand-border-light pb-5 print:hidden">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Format tableur (ODS sheet representation) */}
                   <button
@@ -792,13 +824,52 @@ export default function ComparisonTable({
                       </span>
                     </div>
 
-                    <div className="bg-brand-bg border border-brand-border-medium rounded-xl p-3 print:border-slate-205">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Variabilité (Écart-type)</span>
-                      <span className="text-base font-extrabold text-indigo-700">{activeProposal.stats.standardDeviation}</span>
+                    <div className="bg-brand-bg border border-brand-border-medium rounded-xl p-3 print:border-slate-205 relative group">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-center gap-1 cursor-help">
+                        Écart-type homogénéité
+                        <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition" />
+                      </span>
+                      <span className="text-base font-extrabold text-indigo-700 block mt-1">{activeProposal.stats.standardDeviation}</span>
+
+                      {/* Elegant Tooltip overlay */}
+                      <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 origin-bottom group-hover:scale-100 pointer-events-none">
+                        <h5 className="font-bold text-indigo-400 mb-1 flex items-center gap-1.5 text-xs">
+                          <Calculator className="w-3.5 h-3.5" />
+                          Qu'est-ce que l'écart-type homogénéité ?
+                        </h5>
+                        <p className="text-[11px] text-slate-300 leading-normal mb-2.5">
+                          Il mesure la dispersion des effectifs par rapport à la moyenne. Plus il est proche de 0, plus les tailles de classes sont équilibrées et homogènes.
+                        </p>
+                        <h6 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider mb-1.5">Échelle d'évaluation :</h6>
+                        <ul className="space-y-1 text-[11px] font-medium">
+                          <li className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span className="text-emerald-300 font-bold">&lt; 1,0 :</span>
+                            <span>Très équilibrée, répartition optimale</span>
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0"></span>
+                            <span className="text-sky-300 font-bold">1,0 à 1,5 :</span>
+                            <span>Très Homogène (1-2 él. d'écart)</span>
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                            <span className="text-amber-300 font-bold">1,5 à 2,5 :</span>
+                            <span>Équilibré (3-4 él. d'écart)</span>
+                          </li>
+                          <li className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                            <span className="text-rose-400 font-bold">&gt; 2,5 :</span>
+                            <span>Hétérogène (écarts marqués)</span>
+                          </li>
+                        </ul>
+                        {/* Tooltip caret arrow */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                      </div>
                     </div>
 
                     <div className="bg-brand-bg border border-brand-border-medium rounded-xl p-3 print:border-slate-205">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Niveaux multiples</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Cours doubles / multiples</span>
                       <span className="text-base font-extrabold text-purple-700">
                         {activeProposal.stats.doubleLevelCount} ({Math.round((activeProposal.stats.doubleLevelCount / activeProposal.stats.totalClasses) * 100)}%)
                       </span>
@@ -860,15 +931,16 @@ export default function ComparisonTable({
 
                       const defaultClassName = `Classe ${index + 1}`;
                       const classTitle = cls.customName || defaultClassName;
+                      const classId = cls.id || `class-${activeProposal.id}-${index}`;
 
                       return (
                         <div 
-                          key={cls.id} 
+                          key={classId} 
                           className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/40 transition-colors break-inside-avoid"
                         >
                           {/* Class name (renameable) & total count */}
                           <div className="min-w-[170px] shrink-0 space-y-1">
-                            {editingClassId === cls.id ? (
+                            {editingClassId === classId ? (
                               <div className="flex items-center gap-1.5 mt-1 print:hidden">
                                 <input
                                   type="text"
@@ -878,12 +950,12 @@ export default function ComparisonTable({
                                   placeholder={defaultClassName}
                                   autoFocus
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSaveClassName(cls.id);
+                                    if (e.key === 'Enter') handleSaveClassName(classId);
                                     if (e.key === 'Escape') setEditingClassId(null);
                                   }}
                                 />
                                 <button
-                                  onClick={() => handleSaveClassName(cls.id)}
+                                  onClick={() => handleSaveClassName(classId)}
                                   className="p-1 text-emerald-600 hover:text-emerald-700 bg-emerald-50 rounded border border-emerald-200"
                                   title="Enregistrer le nom"
                                 >
@@ -898,17 +970,17 @@ export default function ComparisonTable({
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1.5 group/classname">
-                                <h4 className="font-extrabold text-slate-950 text-sm">
+                              <div 
+                                onClick={() => handleStartEditing(classId, classTitle)}
+                                className="inline-flex items-center gap-2 group/classname cursor-pointer hover:text-indigo-600 transition-colors py-0.5 select-none print:hidden"
+                                title="Cliquer pour renommer cette classe"
+                              >
+                                <h4 className="font-extrabold text-slate-950 group-hover/classname:text-indigo-600 text-sm transition-colors decoration-dashed decoration-1 underline-offset-4 hover:underline">
                                   {classTitle}
                                 </h4>
-                                <button
-                                  onClick={() => handleStartEditing(cls.id, classTitle)}
-                                  className="opacity-0 group-hover/classname:opacity-100 p-1 text-slate-400 hover:text-indigo-600 transition cursor-pointer print:hidden"
-                                  title="Renommer cette classe"
-                                >
+                                <span className="p-1 text-slate-500 group-hover/classname:text-indigo-600 group-hover/classname:bg-indigo-50 group-hover/classname:border-indigo-200 bg-slate-50 border border-slate-200 rounded transition-all" aria-hidden="true">
                                   <Pencil className="w-3 h-3" />
-                                </button>
+                                </span>
                               </div>
                             )}
 
@@ -974,11 +1046,11 @@ export default function ComparisonTable({
                         </li>
                         {activeProposal.stats.doubleLevelCount > 0 ? (
                           <li>
-                            Elle emploie {activeProposal.stats.doubleLevelCount} classe(s) à double niveau pour loger l'intégralité de vos effectifs décrits.
+                            Elle emploie {activeProposal.stats.doubleLevelCount} classe(s) à cours doubles ou multiples pour loger l'intégralité de vos effectifs décrits.
                           </li>
                         ) : (
                           <li>
-                            Aucune classe à double niveau n'est nécessaire. Toutes les classes demeurent à niveau pur unique.
+                            Aucune classe à cours doubles ou multiples n'est nécessaire. Toutes les classes demeurent à niveau pur unique.
                           </li>
                         )}
                         {activeProposal.classes.map((c, sIdx) => {
@@ -1026,7 +1098,7 @@ export default function ComparisonTable({
                                 ) : classes.length === 1 ? (
                                   <>
                                     <span>Classe de {classes[0].totalStudents} élèves.</span>
-                                    <span className="font-bold text-emerald-600">Équilibre parfait</span>
+                                    <span className="font-bold text-slate-600">Enseignant unique</span>
                                   </>
                                 ) : (
                                   <>

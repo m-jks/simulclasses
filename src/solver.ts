@@ -81,8 +81,8 @@ export function scoreState(
     levelsInClass.forEach(lvl => {
       const activeLvlConfig = activeLevels.find(al => al.id === lvl);
       if (activeLvlConfig && activeLvlConfig.maxClassSize && size > activeLvlConfig.maxClassSize) {
-        score += (size - activeLvlConfig.maxClassSize) * 12000;
-        penalties.push(`La Classe ${idx + 1} contient le niveau ${lvl} et dépasse la limite stricte de ce niveau (${size} élèves > ${activeLvlConfig.maxClassSize})`);
+        score += 500000 + (size - activeLvlConfig.maxClassSize) * 50000;
+        penalties.push(`La Classe ${idx + 1} contient le niveau plafonné ${lvl} et dépasse sa limite de ${activeLvlConfig.maxClassSize} élèves (${size} élèves)`);
       }
     });
 
@@ -493,7 +493,7 @@ export function solveAllocations(
     const activeSizes = formattedClasses.map(c => c.totalStudents);
     const minSize = activeSizes.length > 0 ? Math.min(...activeSizes) : 0;
     const maxSize = activeSizes.length > 0 ? Math.max(...activeSizes) : 0;
-    const doubleLevels = formattedClasses.filter(c => Object.keys(c.levels).length === 2).length;
+    const doubleLevels = formattedClasses.filter(c => Object.keys(c.levels).length >= 2).length;
     const singleLevels = formattedClasses.filter(c => Object.keys(c.levels).length === 1).length;
 
     const avgClassSize = activeSizes.length > 0 ? totalStudents / activeSizes.length : 0;
