@@ -81,7 +81,7 @@ export function scoreState(
     levelsInClass.forEach(lvl => {
       const activeLvlConfig = activeLevels.find(al => al.id === lvl);
       if (activeLvlConfig && activeLvlConfig.maxClassSize && size > activeLvlConfig.maxClassSize) {
-        score += 500000 + (size - activeLvlConfig.maxClassSize) * 50000;
+        score += 5000000 + (size - activeLvlConfig.maxClassSize) * 200000;
         penalties.push(`La Classe ${idx + 1} contient le niveau plafonné ${lvl} et dépasse sa limite de ${activeLvlConfig.maxClassSize} élèves (${size} élèves)`);
       }
     });

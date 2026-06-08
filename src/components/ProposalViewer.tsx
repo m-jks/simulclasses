@@ -33,6 +33,7 @@ export default function ProposalViewer({
 }: ProposalViewerProps) {
   const [activeTab, setActiveTab] = useState<number>(0);
   const [customNameInput, setCustomNameInput] = useState<string>('');
+  const [showSdTooltip, setShowSdTooltip] = useState<boolean>(false);
 
   if (proposals.length === 0) return null;
 
@@ -174,10 +175,17 @@ export default function ProposalViewer({
             <span className="text-[9px] text-slate-400 block -mt-0.5">élèves max/min</span>
           </div>
 
-          <div className="bg-brand-bg/50 p-3.5 rounded-xl border border-brand-border-light text-center relative group">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1 cursor-help md:relative">
+          <div 
+            className="bg-brand-bg/50 p-3.5 rounded-xl border border-brand-border-light text-center relative cursor-help select-none"
+            onMouseEnter={() => setShowSdTooltip(true)}
+            onMouseLeave={() => setShowSdTooltip(false)}
+            onFocus={() => setShowSdTooltip(true)}
+            onBlur={() => setShowSdTooltip(false)}
+            tabIndex={0}
+          >
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1 md:relative">
               Écart-type homogénéité
-              <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition" />
+              <Info className={`w-3.5 h-3.5 transition-colors ${showSdTooltip ? 'text-indigo-600' : 'text-slate-400'}`} />
             </span>
             <span className="text-xl font-black text-indigo-700 block mt-1">{selectedProposal.stats.standardDeviation}</span>
             <span className="text-[9px] text-slate-400 block -mt-0.5">
@@ -187,7 +195,9 @@ export default function ProposalViewer({
             </span>
             
             {/* Elegant Tooltip overlay */}
-            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 origin-bottom group-hover:scale-100 pointer-events-none">
+            <div className={`absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs transition-all duration-200 scale-95 origin-bottom pointer-events-none ${
+              showSdTooltip ? 'visible opacity-100 scale-100' : 'invisible opacity-0 scale-95'
+            }`}>
               <h5 className="font-bold text-indigo-400 mb-1 flex items-center gap-1.5 text-xs">
                 <Calculator className="w-3.5 h-3.5" />
                 Qu'est-ce que l'écart-type homogénéité ?

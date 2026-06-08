@@ -41,6 +41,7 @@ export default function ComparisonTable({
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [editingNameValue, setEditingNameValue] = useState<string>('');
   const [confirmClearAll, setConfirmClearAll] = useState<boolean>(false);
+  const [showSdTooltip, setShowSdTooltip] = useState<boolean>(false);
 
   // Auto-reset confirmation if list becomes empty or changes
   useEffect(() => {
@@ -824,15 +825,24 @@ export default function ComparisonTable({
                       </span>
                     </div>
 
-                    <div className="bg-brand-bg border border-brand-border-medium rounded-xl p-3 print:border-slate-205 relative group">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-center gap-1 cursor-help">
+                    <div 
+                      className="bg-brand-bg border border-brand-border-medium rounded-xl p-3 print:border-slate-205 relative cursor-help select-none"
+                      onMouseEnter={() => setShowSdTooltip(true)}
+                      onMouseLeave={() => setShowSdTooltip(false)}
+                      onFocus={() => setShowSdTooltip(true)}
+                      onBlur={() => setShowSdTooltip(false)}
+                      tabIndex={0}
+                    >
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center justify-center gap-1">
                         Écart-type homogénéité
-                        <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition" />
+                        <Info className={`w-3.5 h-3.5 transition-colors ${showSdTooltip ? 'text-indigo-600' : 'text-slate-400'}`} />
                       </span>
                       <span className="text-base font-extrabold text-indigo-700 block mt-1">{activeProposal.stats.standardDeviation}</span>
 
                       {/* Elegant Tooltip overlay */}
-                      <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 origin-bottom group-hover:scale-100 pointer-events-none">
+                      <div className={`absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-900 text-white rounded-xl p-3.5 shadow-xl text-left text-xs transition-all duration-200 scale-95 origin-bottom pointer-events-none ${
+                        showSdTooltip ? 'visible opacity-100 scale-100' : 'invisible opacity-0 scale-95'
+                      }`}>
                         <h5 className="font-bold text-indigo-400 mb-1 flex items-center gap-1.5 text-xs">
                           <Calculator className="w-3.5 h-3.5" />
                           Qu'est-ce que l'écart-type homogénéité ?
@@ -933,10 +943,20 @@ export default function ComparisonTable({
                       const classTitle = cls.customName || defaultClassName;
                       const classId = cls.id || `class-${activeProposal.id}-${index}`;
 
+                      // Calculate class-specific ceilings and violations
+                      const ceilings = getClassSpecificCeilings(cls, activeProposal.config);
+                      const maxAllowedGlobal = activeProposal.config.solver.globalMaxClassSize;
+                      const effectiveMax = ceilings.length > 0 ? Math.min(...ceilings.map(c => c.limit)) : maxAllowedGlobal;
+                      const isLimitViolated = cls.totalStudents > effectiveMax;
+
                       return (
                         <div 
                           key={classId} 
-                          className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/40 transition-colors break-inside-avoid"
+                          className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors break-inside-avoid border-b border-brand-border-light/40 last:border-0 ${
+                            isLimitViolated
+                              ? 'bg-rose-50/70 hover:bg-rose-100/40'
+                              : 'hover:bg-slate-50/40'
+                          }`}
                         >
                           {/* Class name (renameable) & total count */}
                           <div className="min-w-[170px] shrink-0 space-y-1">
@@ -992,9 +1012,29 @@ export default function ComparisonTable({
                             <div className="text-xs text-slate-500 font-bold">
                               {cls.totalStudents} élèves
                             </div>
-                            <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-bold border ${badgeStyle}`}>
-                              {classBadge}
-                            </span>
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              <span className={`inline-block text-[10px] px-2 py-0.5 rounded-md font-bold border leading-none ${badgeStyle}`}>
+                                {classBadge}
+                              </span>
+                              
+                              {/* Capping limits warning badges */}
+                              {ceilings.map(ceil => {
+                                const violated = cls.totalStudents > ceil.limit;
+                                return (
+                                  <div
+                                    key={ceil.level}
+                                    className={`inline-flex items-center gap-1 text-[9px] font-bold tracking-tight rounded-md px-1.5 py-0.5 border leading-none shrink-0 ${
+                                      violated
+                                        ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
+                                        : 'bg-emerald-105 border-emerald-200 text-emerald-800 bg-emerald-50'
+                                    }`}
+                                  >
+                                    <TriangleAlert className="w-2.5 h-2.5 shrink-0" />
+                                    Plafonné ({ceil.level}): {ceil.limit} max
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
 
                           {/* Level distribution list with visual bars */}

@@ -21,6 +21,9 @@ export default function Header({ onLoadTemplate }: HeaderProps) {
           <div>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
               SimulClasses
+              <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-medium tracking-normal">
+                v0.5
+              </span>
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">
               Optimisation de répartition des effectifs.
