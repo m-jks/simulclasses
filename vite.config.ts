@@ -5,12 +5,8 @@ import {fileURLToPath} from 'url';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
-  const isGithubActions = !!process.env.GITHUB_ACTIONS;
-  const repoName = process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split('/')[1]}/` : '/simulclasses/';
-  const basePath = isGithubActions ? repoName : './';
-
   return {
-    base: basePath,
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
