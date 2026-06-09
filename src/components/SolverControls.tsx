@@ -264,21 +264,18 @@ export default function SolverControls({
               </div>
             </div>
 
-            <div className="space-y-1.5 pt-1.5">
+            <div className="space-y-1 pt-1.5">
               <label className="text-[11px] text-slate-500 font-bold block leading-tight">
                 Écart maximal d'élèves entre deux classes simples
               </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={maxSimpleClassesGapInput}
-                  onChange={handleMaxSimpleClassesGapChange}
-                  onBlur={handleMaxSimpleClassesGapBlur}
-                  className="w-18 text-xs font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  title="Écart d'élèves autorisé entre l'effectif le plus petit et le plus grand des classes à niveau unique"
-                />
-                <span className="text-[11px] text-slate-400 font-medium leading-normal">élèves maximum d'écart d'effectif.</span>
-              </div>
+              <input
+                type="number"
+                value={maxSimpleClassesGapInput}
+                onChange={handleMaxSimpleClassesGapChange}
+                onBlur={handleMaxSimpleClassesGapBlur}
+                className="w-full text-sm font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                title="Écart d'élèves autorisé entre l'effectif le plus petit et le plus grand des classes à niveau unique"
+              />
             </div>
           </div>
 

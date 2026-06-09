@@ -69,7 +69,8 @@ export function scoreState(
     }
 
     if (size < solverConfig.globalMinClassSize) {
-      score += (solverConfig.globalMinClassSize - size) * 1500;
+      const diff = solverConfig.globalMinClassSize - size;
+      score += 1000000 + diff * 200000;
       if (size < solverConfig.globalMinClassSize - 2) {
         penalties.push(`La Classe ${idx + 1} est sous-peuplée (${size} élèves), en dessous du minimum conseillé de ${solverConfig.globalMinClassSize}`);
       }
@@ -146,7 +147,7 @@ export function scoreState(
         if (levelsInThisClass.length >= 2) {
           // Check minimum cohort constraint
           if (qty < minPerLvl && lvl.count >= minPerLvl) {
-            score += (minPerLvl - qty + 1) * 80000;
+            score += 2000000 + (minPerLvl - qty) * 500000;
             penalties.push(`Le groupe de ${lvl.name} dans la classe à niveaux multiples ${idx + 1} est trop restreint (${qty} élève(s), min réglé à ${minPerLvl})`);
           }
           // Check maximum cohort constraint
