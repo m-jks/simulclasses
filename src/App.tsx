@@ -36,6 +36,9 @@ const DEFAULT_SOLVER_CONFIG: SolverConfig = {
   homogeneityPriority: 'global',
   multiLevelMinStudentsPerLevel: 4,
   multiLevelMaxStudentsPerLevel: 18,
+  maxSimpleClassesStudentsGap: 2,
+  multiLevelNotLargerThanSimpleClasses: false,
+  multiLevelSingleCycleOnly: false,
 };
 
 export default function App() {

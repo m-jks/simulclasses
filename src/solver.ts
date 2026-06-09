@@ -100,6 +100,19 @@ export function scoreState(
         score += 10000000 + 1000000 * (gap - expectedGap);
         penalties.push(`La Classe ${idx + 1} comporte des niveaux non consécutifs: ${levelsInClass.join('/')}`);
       }
+
+      // Classes à niveaux multiples / double de même cycle uniquement
+      if (solverConfig.multiLevelSingleCycleOnly) {
+        const cyclesInClass = new Set(levelsInClass.map(lvl => {
+          if (['PS', 'MS', 'GS'].includes(lvl)) return 1;
+          if (['CP', 'CE1', 'CE2'].includes(lvl)) return 2;
+          return 3;
+        }));
+        if (cyclesInClass.size > 1) {
+          score += 10000000;
+          penalties.push(`La Classe ${idx + 1} comporte des niveaux de cycles différents: ${levelsInClass.join('/')}`);
+        }
+      }
     }
   });
 
@@ -145,6 +158,45 @@ export function scoreState(
       }
     });
   });
+
+  // H2. Écart max d'élèves entre classes simples, et comparaison d'effectifs multi-niveaux / simples
+  const simpleClassesSizes: number[] = [];
+  const multiClassesSizes: number[] = [];
+
+  state.forEach((c, idx) => {
+    const size = sizeByClass[idx];
+    if (size === 0) return;
+    const levelsInClass = (Object.keys(c) as LevelId[]).filter(lvl => (c[lvl] || 0) > 0);
+    const countLevels = levelsInClass.length;
+    if (countLevels === 1) {
+      simpleClassesSizes.push(size);
+    } else if (countLevels >= 2) {
+      multiClassesSizes.push(size);
+    }
+  });
+
+  // Check max gap between simple classes
+  if (solverConfig.maxSimpleClassesStudentsGap !== undefined && simpleClassesSizes.length >= 2) {
+    const minSimple = Math.min(...simpleClassesSizes);
+    const maxSimple = Math.max(...simpleClassesSizes);
+    const actualGap = maxSimple - minSimple;
+    if (actualGap > solverConfig.maxSimpleClassesStudentsGap) {
+      const diff = actualGap - solverConfig.maxSimpleClassesStudentsGap;
+      score += 500000 + diff * 150000;
+      penalties.push(`L'écart entre les effectifs des classes simples (${actualGap} élèves) dépasse la limite réglée de ${solverConfig.maxSimpleClassesStudentsGap} élèves (Min: ${minSimple}, Max: ${maxSimple}).`);
+    }
+  }
+
+  // Check that multiple level classes do not exceed simple classes
+  if (solverConfig.multiLevelNotLargerThanSimpleClasses && multiClassesSizes.length > 0 && simpleClassesSizes.length > 0) {
+    const maxMulti = Math.max(...multiClassesSizes);
+    const minSimple = Math.min(...simpleClassesSizes);
+    if (maxMulti > minSimple) {
+      const diff = maxMulti - minSimple;
+      score += 500000 + diff * 150000;
+      penalties.push(`L'effectif d'une classe multi-niveaux (${maxMulti} élèves) dépasse celui d'une classe simple (${minSimple} élèves).`);
+    }
+  }
 
   // G. Standard deviation & balance of non-empty classes
   const nonCentricSizes = sizeByClass.filter(s => s > 0);

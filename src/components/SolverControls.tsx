@@ -21,6 +21,7 @@ export default function SolverControls({
   const [maxInput, setMaxInput] = useState(config.globalMaxClassSize.toString());
   const [multiMinInput, setMultiMinInput] = useState((config.multiLevelMinStudentsPerLevel ?? 4).toString());
   const [multiMaxInput, setMultiMaxInput] = useState((config.multiLevelMaxStudentsPerLevel ?? 18).toString());
+  const [maxSimpleClassesGapInput, setMaxSimpleClassesGapInput] = useState((config.maxSimpleClassesStudentsGap ?? 2).toString());
 
   // Keep local input states in sync with config when config changes (e.g., via preset loading)
   useEffect(() => {
@@ -38,6 +39,10 @@ export default function SolverControls({
   useEffect(() => {
     setMultiMaxInput((config.multiLevelMaxStudentsPerLevel ?? 18).toString());
   }, [config.multiLevelMaxStudentsPerLevel]);
+
+  useEffect(() => {
+    setMaxSimpleClassesGapInput((config.maxSimpleClassesStudentsGap ?? 2).toString());
+  }, [config.maxSimpleClassesStudentsGap]);
 
   const handleClassChange = (delta: number) => {
     onChangeConfig({
@@ -166,6 +171,32 @@ export default function SolverControls({
     });
   };
 
+  const handleMaxSimpleClassesGapChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setMaxSimpleClassesGapInput(raw);
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChangeConfig({
+        ...config,
+        maxSimpleClassesStudentsGap: parsed
+      });
+    }
+  };
+
+  const handleMaxSimpleClassesGapBlur = () => {
+    let parsed = parseInt(maxSimpleClassesGapInput, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      parsed = 0;
+    } else if (parsed > 25) {
+      parsed = 25;
+    }
+    setMaxSimpleClassesGapInput(parsed.toString());
+    onChangeConfig({
+      ...config,
+      maxSimpleClassesStudentsGap: parsed
+    });
+  };
+
   return (
     <div className="bg-brand-card rounded-2xl border border-brand-border-light p-6 shadow-sm h-full flex flex-col justify-between">
       <div>
@@ -230,6 +261,23 @@ export default function SolverControls({
                   onBlur={handleMaxBlur}
                   className="w-full text-sm font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-1.5">
+              <label className="text-[11px] text-slate-500 font-bold block leading-tight">
+                Écart maximal d'élèves entre deux classes simples
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={maxSimpleClassesGapInput}
+                  onChange={handleMaxSimpleClassesGapChange}
+                  onBlur={handleMaxSimpleClassesGapBlur}
+                  className="w-18 text-xs font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  title="Écart d'élèves autorisé entre l'effectif le plus petit et le plus grand des classes à niveau unique"
+                />
+                <span className="text-[11px] text-slate-400 font-medium leading-normal">élèves maximum d'écart d'effectif.</span>
               </div>
             </div>
           </div>
@@ -417,6 +465,45 @@ export default function SolverControls({
                   <p className="text-[10px] text-slate-400 leading-normal">
                     Ajuste la taille critique de chaque cohorte dans une classe double ou multi-niveaux pour éviter les élèves isolés ou les groupes trop denses.
                   </p>
+                </div>
+
+                {/* Advanced Multi-level constraints */}
+                <div className="space-y-3 pt-3 border-t border-brand-border-medium">
+                  <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Restrictions supplémentaires</span>
+                  
+                  {/* Toggle 1: Multi-level not larger than simple classes */}
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      id="multi-level-not-larger-than-simple"
+                      checked={!!config.multiLevelNotLargerThanSimpleClasses}
+                      onChange={(e) => onChangeConfig({ ...config, multiLevelNotLargerThanSimpleClasses: e.target.checked })}
+                      className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-700 block leading-tight">Effectifs multi-niveaux plus faibles que les classes simples</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5 leading-normal">
+                        Empêche l'effectif de toute classe double ou multiniveaux de dépasser celui de n'importe quelle classe simple.
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Toggle 2: Multi-level single cycle only */}
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-1 select-none">
+                    <input
+                      type="checkbox"
+                      id="multi-level-single-cycle-only"
+                      checked={!!config.multiLevelSingleCycleOnly}
+                      onChange={(e) => onChangeConfig({ ...config, multiLevelSingleCycleOnly: e.target.checked })}
+                      className="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-700 block leading-tight">Classes du même cycle uniquement</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5 leading-normal">
+                        Interdit le couplage de niveaux appartenant à des cycles différents (ex: mélanger Cycle 1 et Cycle 2).
+                      </span>
+                    </div>
+                  </label>
                 </div>
               </div>
             )}

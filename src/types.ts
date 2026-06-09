@@ -25,6 +25,9 @@ export interface SolverConfig {
   homogeneityPriority?: 'global' | 'cycle';
   multiLevelMinStudentsPerLevel?: number;
   multiLevelMaxStudentsPerLevel?: number;
+  maxSimpleClassesStudentsGap?: number;
+  multiLevelNotLargerThanSimpleClasses?: boolean;
+  multiLevelSingleCycleOnly?: boolean;
 }
 
 export interface Class分配 {
