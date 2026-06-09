@@ -4,7 +4,7 @@
  */
 
 import { SchoolTemplate, SCHOOL_TEMPLATES } from '../templates';
-import { School, GraduationCap, Sparkles } from 'lucide-react';
+import { School, TriangleAlert } from 'lucide-react';
 
 interface HeaderProps {
   onLoadTemplate: (template: SchoolTemplate) => void;
@@ -31,8 +31,12 @@ export default function Header({ onLoadTemplate }: HeaderProps) {
           </div>
         </div>
 
-        {/* No templates selector as requested */}
-        <div className="hidden"></div>
+        <div className="flex items-start gap-2.5 bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 md:max-w-md">
+          <TriangleAlert className="w-4.5 h-4.5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-[11px] md:text-xs text-amber-900 leading-normal font-medium">
+            <span className="font-bold text-amber-950">Avertissement :</span> L&apos;application ne sauvegarde aucune donnée entre vos sessions. Les répartitions enregistrées doivent être exportées pour être conservées.
+          </div>
+        </div>
       </div>
     </header>
   );

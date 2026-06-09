@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { AllocationProposal, LevelId } from '../types';
+import { AllocationProposal, LevelId, ALL_LEVELS_ORDER } from '../types';
 import {
   GitCompare,
   ArrowRightLeft,
@@ -808,5 +808,3 @@ export default function DualProposalComparer({
     </div>
   );
 }
-
-const ALL_LEVELS_ORDER: LevelId[] = ['PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];

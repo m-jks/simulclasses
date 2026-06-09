@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { AllocationProposal, Class分配, LevelId } from '../types';
+import { AllocationProposal, Class分配, LevelId, ALL_LEVELS_ORDER } from '../types';
 import {
   TrendingUp,
   TriangleAlert,
@@ -533,5 +533,3 @@ export default function ProposalViewer({
     </div>
   );
 }
-
-const ALL_LEVELS_ORDER: LevelId[] = ['PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];

@@ -3,13 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LevelConfig, SolverConfig, Class分配, AllocationProposal, LevelId } from './types';
+import { LevelConfig, SolverConfig, Class分配, AllocationProposal, LevelId, ALL_LEVELS_ORDER } from './types';
 
 interface InternalState {
   classes: Array<{ [key in LevelId]?: number }>;
 }
-
-const ALL_LEVELS: LevelId[] = ['PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];
 
 function getEmptyClassState(maxClasses: number): InternalState {
   const state: InternalState = { classes: [] };
@@ -93,19 +91,14 @@ export function scoreState(
 
     // E. Consecutive level check for all multiple level classes
     if (countLevels >= 2) {
-      const indices = levelsInClass.map(lvl => ALL_LEVELS.indexOf(lvl)).sort((a, b) => a - b);
+      const indices = levelsInClass.map(lvl => ALL_LEVELS_ORDER.indexOf(lvl)).sort((a, b) => a - b);
       const minIdx = indices[0];
       const maxIdx = indices[indices.length - 1];
       const gap = maxIdx - minIdx;
       const expectedGap = countLevels - 1;
-      if (gap > expectedGap) {
-        if (solverConfig.consecutiveDoubleLevelsOnly) {
-          score += 45000 * (gap - expectedGap);
-          penalties.push(`La Classe ${idx + 1} comporte des niveaux non consécutifs: ${levelsInClass.join('/')}`);
-        } else {
-          // Soft penalty to guide solver to choose closer levels if it can
-          score += 1000 * (gap - expectedGap);
-        }
+      if (gap > expectedGap && solverConfig.consecutiveDoubleLevelsOnly) {
+        score += 10000000 + 1000000 * (gap - expectedGap);
+        penalties.push(`La Classe ${idx + 1} comporte des niveaux non consécutifs: ${levelsInClass.join('/')}`);
       }
     }
   });
@@ -248,7 +241,7 @@ function generateInitialState(
  */
 function mutateState(
   state: InternalState,
-  activeLevels: LevelConfig[],
+  activeLvlIds: LevelId[],
   maxClasses: number
 ): InternalState {
   // Deep clone state
@@ -256,7 +249,6 @@ function mutateState(
     classes: state.classes.map(c => ({ ...c }))
   };
 
-  const activeLvlIds = activeLevels.filter(l => l.enabled && l.count > 0).map(l => l.id);
   if (activeLvlIds.length === 0) return newState;
 
   const moveType = Math.random();
@@ -411,8 +403,10 @@ export function solveAllocations(
     let T = 100.0;
     const alpha = 0.95;
 
+    const activeLvlIds = activeLevels.map(l => l.id);
+
     for (let iter = 0; iter < ITERATIONS_PER_RESTART; iter++) {
-      const nextState = mutateState(currentState, activeLevels, solverConfig.maxClasses);
+      const nextState = mutateState(currentState, activeLvlIds, solverConfig.maxClasses);
       const nextEval = scoreState(nextState.classes, activeLevels, solverConfig);
 
       const dE = nextEval.score - currentEval.score;
@@ -459,7 +453,7 @@ export function solveAllocations(
     const formattedClasses: Class分配[] = res.state
       .map((lvlObj, classIdx) => {
         const levelsInClass = (Object.keys(lvlObj) as LevelId[]).filter(lvl => (lvlObj[lvl] || 0) > 0);
-        levelsInClass.sort((a, b) => ALL_LEVELS.indexOf(a) - ALL_LEVELS.indexOf(b));
+        levelsInClass.sort((a, b) => ALL_LEVELS_ORDER.indexOf(a) - ALL_LEVELS_ORDER.indexOf(b));
         const total = levelsInClass.reduce((sum, lvl) => sum + (lvlObj[lvl] || 0), 0);
         const name = levelsInClass.length > 0 ? levelsInClass.join(' / ') : 'Classe Vide';
 
@@ -480,7 +474,7 @@ export function solveAllocations(
         let total = 0;
         Object.entries(cls.levels).forEach(([lvl, qty]) => {
           if (qty && qty > 0) {
-            const idx = ALL_LEVELS.indexOf(lvl as LevelId);
+            const idx = ALL_LEVELS_ORDER.indexOf(lvl as LevelId);
             weightedSum += idx * qty;
             total += qty;
           }
@@ -496,8 +490,8 @@ export function solveAllocations(
       }
 
       // Fallback: compare lowest levels in class
-      const minIndexA = Math.min(...Object.keys(a.levels).map(l => ALL_LEVELS.indexOf(l as LevelId)));
-      const minIndexB = Math.min(...Object.keys(b.levels).map(l => ALL_LEVELS.indexOf(l as LevelId)));
+      const minIndexA = Math.min(...Object.keys(a.levels).map(l => ALL_LEVELS_ORDER.indexOf(l as LevelId)));
+      const minIndexB = Math.min(...Object.keys(b.levels).map(l => ALL_LEVELS_ORDER.indexOf(l as LevelId)));
       return minIndexA - minIndexB;
     });
 

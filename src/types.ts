@@ -5,6 +5,8 @@
 
 export type LevelId = 'PS' | 'MS' | 'GS' | 'CP' | 'CE1' | 'CE2' | 'CM1' | 'CM2';
 
+export const ALL_LEVELS_ORDER: LevelId[] = ['PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];
+
 export interface LevelConfig {
   id: LevelId;
   name: string;
