@@ -130,13 +130,24 @@ export function scoreState(
     // Very critical real-life constraint: we do NOT want "fragment" levels.
     // E.g., a double level class with 2 GS and 24 CP. The 2 GS students are completely isolated.
     // Minimum cohort size in a double class should ideally be at least 4-5 students, unless the entire level is tiny.
+    const minPerLvl = solverConfig.multiLevelMinStudentsPerLevel !== undefined ? solverConfig.multiLevelMinStudentsPerLevel : 4;
+    const maxPerLvl = solverConfig.multiLevelMaxStudentsPerLevel;
+
     state.forEach((c, idx) => {
       const qty = c[lvl.id] || 0;
       if (qty > 0) {
         const levelsInThisClass = (Object.keys(c) as LevelId[]).filter(l => (c[l] || 0) > 0);
-        if (levelsInThisClass.length === 2 && qty <= 4 && lvl.count > 4) {
-          score += (5 - qty) * 5000;
-          penalties.push(`Le groupe de ${lvl.id} dans la classe double ${idx + 1} est trop restreint (${qty} élève(s))`);
+        if (levelsInThisClass.length >= 2) {
+          // Check minimum cohort constraint
+          if (qty < minPerLvl && lvl.count >= minPerLvl) {
+            score += (minPerLvl - qty + 1) * 80000;
+            penalties.push(`Le groupe de ${lvl.name} dans la classe à niveaux multiples ${idx + 1} est trop restreint (${qty} élève(s), min réglé à ${minPerLvl})`);
+          }
+          // Check maximum cohort constraint
+          if (maxPerLvl !== undefined && maxPerLvl > 0 && qty > maxPerLvl) {
+            score += (qty - maxPerLvl) * 100000;
+            penalties.push(`Le groupe de ${lvl.name} dans la classe à niveaux multiples ${idx + 1} dépasse la limite maximale (${qty} élèves, max réglé à ${maxPerLvl})`);
+          }
         }
       }
     });

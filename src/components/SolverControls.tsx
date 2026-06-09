@@ -19,6 +19,8 @@ export default function SolverControls({
 
   const [minInput, setMinInput] = useState(config.globalMinClassSize.toString());
   const [maxInput, setMaxInput] = useState(config.globalMaxClassSize.toString());
+  const [multiMinInput, setMultiMinInput] = useState((config.multiLevelMinStudentsPerLevel ?? 4).toString());
+  const [multiMaxInput, setMultiMaxInput] = useState((config.multiLevelMaxStudentsPerLevel ?? 18).toString());
 
   // Keep local input states in sync with config when config changes (e.g., via preset loading)
   useEffect(() => {
@@ -28,6 +30,14 @@ export default function SolverControls({
   useEffect(() => {
     setMaxInput(config.globalMaxClassSize.toString());
   }, [config.globalMaxClassSize]);
+
+  useEffect(() => {
+    setMultiMinInput((config.multiLevelMinStudentsPerLevel ?? 4).toString());
+  }, [config.multiLevelMinStudentsPerLevel]);
+
+  useEffect(() => {
+    setMultiMaxInput((config.multiLevelMaxStudentsPerLevel ?? 18).toString());
+  }, [config.multiLevelMaxStudentsPerLevel]);
 
   const handleClassChange = (delta: number) => {
     onChangeConfig({
@@ -101,6 +111,58 @@ export default function SolverControls({
     onChangeConfig({
       ...config,
       globalMaxClassSize: parsed
+    });
+  };
+
+  const handleMultiMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setMultiMinInput(raw);
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      onChangeConfig({
+        ...config,
+        multiLevelMinStudentsPerLevel: parsed
+      });
+    }
+  };
+
+  const handleMultiMinBlur = () => {
+    let parsed = parseInt(multiMinInput, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      parsed = 1;
+    } else if (parsed > 25) {
+      parsed = 25;
+    }
+    setMultiMinInput(parsed.toString());
+    onChangeConfig({
+      ...config,
+      multiLevelMinStudentsPerLevel: parsed
+    });
+  };
+
+  const handleMultiMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setMultiMaxInput(raw);
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      onChangeConfig({
+        ...config,
+        multiLevelMaxStudentsPerLevel: parsed
+      });
+    }
+  };
+
+  const handleMultiMaxBlur = () => {
+    let parsed = parseInt(multiMaxInput, 10);
+    if (isNaN(parsed) || parsed < 5) {
+      parsed = 5;
+    } else if (parsed > 40) {
+      parsed = 40;
+    }
+    setMultiMaxInput(parsed.toString());
+    onChangeConfig({
+      ...config,
+      multiLevelMaxStudentsPerLevel: parsed
     });
   };
 
@@ -322,6 +384,38 @@ export default function SolverControls({
                     {config.consecutiveDoubleLevelsOnly
                       ? "Autorise seulement des classes adjacentes (ex: GS/CP, CM1/CM2). Recommandé."
                       : "Autorise des couplages disjoints (ex: CP/CE2, PS/GS) si nécessaire."}
+                  </p>
+                </div>
+
+                {/* Effectifs min/max par groupe de niveau */}
+                <div className="space-y-2 pt-2.5 border-t border-brand-border-medium">
+                  <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">Effectifs des groupes de niveau</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-medium block leading-tight">Minimum par niveau</label>
+                      <input
+                        type="number"
+                        value={multiMinInput}
+                        onChange={handleMultiMinChange}
+                        onBlur={handleMultiMinBlur}
+                        className="w-full text-xs font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        title="Nombre minimal d'élèves d'un même niveau dans une classe à niveaux multiples"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-medium block leading-tight">Maximum par niveau</label>
+                      <input
+                        type="number"
+                        value={multiMaxInput}
+                        onChange={handleMultiMaxChange}
+                        onBlur={handleMultiMaxBlur}
+                        className="w-full text-xs font-semibold text-slate-700 bg-brand-bg hover:bg-brand-accent/40 border border-brand-border-medium rounded-lg p-1.5 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        title="Nombre maximal d'élèves d'un même niveau dans une classe à niveaux multiples ou double niveau"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-normal">
+                    Ajuste la taille critique de chaque cohorte dans une classe double ou multi-niveaux pour éviter les élèves isolés ou les groupes trop denses.
                   </p>
                 </div>
               </div>

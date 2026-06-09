@@ -21,6 +21,8 @@ export interface SolverConfig {
   globalMinClassSize: number;
   multipleLevelsPolicy?: 'pure_only' | 'double_only' | 'multi_levels';
   homogeneityPriority?: 'global' | 'cycle';
+  multiLevelMinStudentsPerLevel?: number;
+  multiLevelMaxStudentsPerLevel?: number;
 }
 
 export interface Class分配 {
