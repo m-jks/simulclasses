@@ -224,6 +224,74 @@ export default function App() {
     saveToSessionStorage(newList);
   };
 
+  const handleUpdateSavedProposalClassLevel = (proposalId: string, classId: string, levelId: LevelConfig['id'], newCount: number) => {
+    const newList = savedProposals.map(p => {
+      if (p.id === proposalId) {
+        const updatedClasses = p.classes.map((c, idx) => {
+          const currentId = c.id || `class-${p.id}-${idx}`;
+          if (currentId === classId) {
+            const updatedLevels = { ...c.levels, [levelId]: newCount };
+            const totalStudents = Object.values(updatedLevels).reduce((s: number, val) => s + ((val as number) || 0), 0);
+            return {
+              ...c,
+              id: currentId,
+              levels: updatedLevels,
+              totalStudents
+            };
+          }
+          return {
+            ...c,
+            id: currentId
+          };
+        });
+
+        // Compute updated stats matching the original logic
+        const activeClasses = updatedClasses.filter(c => c.totalStudents > 0);
+        const totalClasses = p.classes.length;
+        const totalStudents = updatedClasses.reduce((s, c) => s + c.totalStudents, 0);
+        const averageClassSize = totalClasses > 0 ? Math.round((totalStudents / totalClasses) * 10) / 10 : 0;
+        
+        const allSizes = updatedClasses.map(c => c.totalStudents);
+        const minClassSize = allSizes.length > 0 ? Math.min(...allSizes) : 0;
+        const maxClassSize = allSizes.length > 0 ? Math.max(...allSizes) : 0;
+
+        let doubleLevelCount = 0;
+        let singleLevelCount = 0;
+        updatedClasses.forEach(c => {
+          const lvlsCount = Object.values(c.levels).filter(q => ((q as number) || 0) > 0).length;
+          if (lvlsCount === 1) singleLevelCount++;
+          else if (lvlsCount >= 2) doubleLevelCount++;
+        });
+
+        let standardDeviation = 0;
+        if (totalClasses > 1) {
+          const sqDiffSum = allSizes.reduce((sum, size) => sum + Math.pow(size - averageClassSize, 2), 0);
+          standardDeviation = Math.round(Math.sqrt(sqDiffSum / totalClasses) * 100) / 100;
+        }
+
+        return {
+          ...p,
+          classes: updatedClasses,
+          stats: {
+            ...p.stats,
+            totalStudents,
+            totalClasses,
+            averageClassSize,
+            minClassSize,
+            maxClassSize,
+            doubleLevelCount,
+            singleLevelCount,
+            standardDeviation
+          }
+        };
+      }
+      return p;
+    });
+
+    setSavedProposals(newList);
+    saveToSessionStorage(newList);
+  };
+
   const isLevelActiveAndHasStudents = levels.some(lvl => lvl.enabled && lvl.count > 0);
   const totalSchoolStudents = levels.reduce((sum, lvl) => sum + (lvl.enabled ? lvl.count : 0), 0);
 
@@ -406,6 +474,7 @@ export default function App() {
               onDeleteProposal={handleDeleteSavedProposal}
               onClearAll={handleClearAllSaved}
               onRenameClass={handleRenameClassInSavedProposal}
+              onUpdateClassLevelCount={handleUpdateSavedProposalClassLevel}
             />
           </section>
         )}

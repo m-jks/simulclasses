@@ -27,13 +27,15 @@ interface ComparisonTableProps {
   onDeleteProposal: (id: string) => void;
   onClearAll: () => void;
   onRenameClass?: (proposalId: string, classId: string, newCustomName: string) => void;
+  onUpdateClassLevelCount?: (proposalId: string, classId: string, levelId: LevelId, newCount: number) => void;
 }
 
 export default function ComparisonTable({
   savedProposals,
   onDeleteProposal,
   onClearAll,
-  onRenameClass
+  onRenameClass,
+  onUpdateClassLevelCount
 }: ComparisonTableProps) {
   const [selectedPropId, setSelectedPropId] = useState<string>('');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -76,6 +78,30 @@ export default function ComparisonTable({
   }
 
   const activeProposal = savedProposals.find(p => p.id === selectedPropId) || savedProposals[0];
+
+  // Calc discrepancy list between class configurations and official sums
+  const levelDiscrepancies = activeProposal ? activeProposal.config.levels.map(lvlConfig => {
+    const lvlId = lvlConfig.id;
+    const targetCount = lvlConfig.enabled ? lvlConfig.count : 0;
+    const actualCount = activeProposal.classes.reduce((sum, c) => sum + (c.levels[lvlId] || 0), 0);
+    const diff = actualCount - targetCount;
+    return {
+      levelId: lvlId,
+      name: lvlConfig.name,
+      targetCount,
+      actualCount,
+      diff,
+      hasMismatch: diff !== 0
+    };
+  }) : [];
+
+  const hasAnyDiscrepancy = levelDiscrepancies.some(d => d.hasMismatch);
+
+  const handleUpdateLevelCount = (classId: string, levelId: LevelId, newCount: number) => {
+    if (onUpdateClassLevelCount && activeProposal) {
+      onUpdateClassLevelCount(activeProposal.id, classId, levelId, Math.max(0, newCount));
+    }
+  };
 
   // Helper to start inline class renaming
   const handleStartEditing = (classId: string, currentName: string) => {
@@ -885,6 +911,60 @@ export default function ComparisonTable({
                   </div>
                 </div>
 
+                {/* Alert banner for discrepancies between modified and target school counts (hidden during print) */}
+                <div className={`p-4.5 rounded-2xl border transition-all print:hidden ${
+                  hasAnyDiscrepancy 
+                    ? 'bg-amber-50/95 border-amber-200 text-amber-900 shadow-3xs hover:bg-amber-100/40' 
+                    : 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className="p-1 rounded-lg bg-white shrink-0 shadow-3xs">
+                      {hasAnyDiscrepancy ? (
+                        <TriangleAlert className="w-5 h-5 text-amber-600" />
+                      ) : (
+                        <Check className="w-5 h-5 text-emerald-600" />
+                      )}
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <h4 className="font-bold text-xs text-slate-800">
+                        {hasAnyDiscrepancy 
+                          ? "Alerte de cohérence : Écarts d'effectifs détectés !" 
+                          : "Vérification de cohérence : Structuration de rentrée valide !"
+                        }
+                      </h4>
+                      <p className="text-[11px] leading-relaxed text-slate-500 font-semibold">
+                        {hasAnyDiscrepancy 
+                          ? "La somme des élèves répartis par niveau dans les classes ne correspond pas au total cumulé de l'école. Les effectifs totaux officiels sont fixes et modifiables uniquement depuis l'onglet des paramètres de génération."
+                          : "La somme de tous les effectifs saisis dans chaque classe correspond exactement au nombre de vos élèves inscrits."
+                        }
+                      </p>
+                      
+                      <div className="pt-1">
+                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1.5">Bilan par niveaux d'enseignement :</span>
+                        <div className="flex flex-wrap gap-2">
+                          {levelDiscrepancies.map(d => {
+                            const badgeStyle = d.diff === 0 
+                              ? 'bg-emerald-50 hover:bg-emerald-100/50 text-emerald-700 border-emerald-150' 
+                              : d.diff > 0 
+                                ? 'bg-rose-50 hover:bg-rose-100/50 text-rose-750 border-rose-150' 
+                                : 'bg-amber-50 hover:bg-amber-100/50 text-amber-700 border-amber-150';
+                            return (
+                              <div key={d.levelId} className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-semibold transition-colors ${badgeStyle}`}>
+                                <span className="font-extrabold">{d.levelId}</span>
+                                <span className="opacity-30">|</span>
+                                <span>{d.actualCount}/{d.targetCount} él.</span>
+                                {d.diff !== 0 && (
+                                  <span className="font-extrabold font-mono">({d.diff > 0 ? `+${d.diff}` : d.diff})</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Compact List details classes with in-line renaming */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wide border-b border-brand-border-light pb-2">
@@ -918,6 +998,10 @@ export default function ComparisonTable({
                       const activeLevels = Object.entries(cls.levels)
                         .filter(([_, qty]) => (qty || 0) > 0)
                         .sort((a, b) => ALL_LEVELS_ORDER.indexOf(a[0] as LevelId) - ALL_LEVELS_ORDER.indexOf(b[0] as LevelId));
+
+                      const proposalEnabledLevels = activeProposal.config.levels
+                        .filter(l => l.enabled)
+                        .sort((a, b) => ALL_LEVELS_ORDER.indexOf(a.id) - ALL_LEVELS_ORDER.indexOf(b.id));
 
                       const lvlCount = activeLevels.length;
                       let classBadge = "Niveaux Multiples";
@@ -1035,25 +1119,70 @@ export default function ComparisonTable({
                             </div>
                           </div>
 
-                          {/* Level distribution list with visual bars */}
-                          <div className="flex-1 space-y-2 max-w-xl">
-                            {activeLevels.map(([lvl, count]) => {
-                              const levelPercent = Math.round(((count || 0) / cls.totalStudents) * 100);
+                           {/* Level distribution list with visual bars and inline adjustment controls */}
+                          <div className="flex-1 space-y-2.5 max-w-xl">
+                            {proposalEnabledLevels.map((lvlConfig) => {
+                              const lvl = lvlConfig.id;
+                              const count = cls.levels[lvl] || 0;
+                              const levelPercent = cls.totalStudents > 0 ? Math.round((count / cls.totalStudents) * 100) : 0;
                               return (
-                                <div key={lvl} className="flex items-center gap-3 text-xs">
-                                  <span className="w-10 font-extrabold text-slate-800">{lvl}</span>
-                                  <div className="flex-1 bg-slate-150 rounded-full h-2 relative min-w-[70px]">
-                                    <div 
-                                      className={`h-2 rounded-full ${
-                                        lvlCount === 1 ? 'bg-indigo-600' :
-                                        lvlCount === 2 ? 'bg-amber-500' :
-                                        lvlCount === 3 ? 'bg-rose-500' : 'bg-red-500'
-                                      }`}
-                                      style={{ width: `${levelPercent}%` }}
-                                    ></div>
+                                <div key={lvl} className={`flex items-center gap-3 text-xs ${count === 0 ? 'opacity-35 hover:opacity-100 transition-opacity print:hidden' : ''}`}>
+                                  <span className="w-10 font-extrabold text-slate-805 shrink-0">{lvl}</span>
+                                  
+                                  {count > 0 ? (
+                                    <div className="flex-1 bg-slate-150 rounded-full h-1.5 relative min-w-[50px] print:block">
+                                      <div 
+                                        className={`h-1.5 rounded-full ${
+                                          lvlCount === 1 ? 'bg-indigo-650' :
+                                          lvlCount === 2 ? 'bg-amber-500' :
+                                          lvlCount === 3 ? 'bg-rose-500' : 'bg-red-500'
+                                        }`}
+                                        style={{ width: `${levelPercent}%` }}
+                                      ></div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex-1 border-t border-dashed border-slate-200 print:hidden"></div>
+                                  )}
+                                  
+                                  {/* Dynamic inline adjusters - hidden when printing */}
+                                  <div className="flex items-center gap-1 shrink-0 print:hidden">
+                                    <button
+                                      type="button"
+                                      disabled={count <= 0}
+                                      onClick={() => handleUpdateLevelCount(classId, lvl, count - 1)}
+                                      className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black text-xs transition-colors border border-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                      title="Diminuer l'effectif"
+                                    >
+                                      -
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={count === 0 ? '' : count}
+                                      placeholder="0"
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        handleUpdateLevelCount(classId, lvl, isNaN(val) ? 0 : val);
+                                      }}
+                                      className="w-9 h-5 text-center border border-slate-200/80 rounded text-[10px] font-extrabold text-slate-850 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateLevelCount(classId, lvl, count + 1)}
+                                      className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black text-xs transition-colors border border-slate-200 cursor-pointer"
+                                      title="Augmenter l'effectif"
+                                    >
+                                      +
+                                    </button>
                                   </div>
-                                  <span className="w-24 text-right text-slate-600 font-semibold shrink-0">
-                                    {count} élèves <span className="text-[10px] text-slate-400 font-normal">({levelPercent}%)</span>
+
+                                  {/* Static display for printing */}
+                                  <span className="hidden print:inline-block text-slate-700 font-semibold text-right text-xs">
+                                    {count} élèves
+                                  </span>
+                                  
+                                  <span className="w-12 text-right text-slate-400 font-semibold shrink-0 print:text-[10px] print:text-slate-500 print:w-10">
+                                    {levelPercent}%
                                   </span>
                                 </div>
                               );
